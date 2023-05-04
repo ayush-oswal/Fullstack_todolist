@@ -1,27 +1,19 @@
 
-/* we have to set view engine as ejs. in this res.render function is used to send html pages.
-    it assumes that the page to be sent is an .ejs page in a folder named views.
-    any valid html is valid ejs. res.render is used to pass variable to .ejs files in key value pairs,
-    the first name is the same as used in .ejs file
-    and it can be accessed in the ejs file using <%=variable_name%>
-    //control statements can be written inside .ejs, have to be enclosed in <%....%>
-    express only serves main access point ie app.js and views folder by default, it ignores other static files.
-    so to render css and other js files we store them in a folder named public by convention.
-    and then write app.use(express.static("public"));
-    ejs layouts matlab joh bhi tumko repeated code chaiye woh ek file me daalo usko views wale folder me daalo and
-    use <%- include("file_name"); -%> aur samjo woh file ka code waha copy paste ho gya
-    we can also create our own module, require it using __dirname+"module_name",
-    we can export from module using exports keyword.
-    to export multiple things such as 2 or more functions use modules.exports.fun_name = fun,
-    due to this, the functions are exported as a whole object and can be accessed using . operator
+/*  
+connection string : mongodb+srv://ayushoswal2003:Kabootar22@cluster0.jofycbf.mongodb.net/?retryWrites=true&w=majority
 */
 
 const express = require('express');
 
+const mongoose = require('mongoose');
+
 const bodyParser = require('body-parser')
 
+const _ = require('lodash')
+
 const date = require(__dirname+"/date.js")
-console.log(date)
+let day = date();
+// console.log(date)
 
 const app = express();
 
@@ -29,32 +21,111 @@ app.use(bodyParser.urlencoded({extended:"true"}))
 
 app.use(express.static("public"))
 
+
 var items = [];
-var Workitems=[];
+
+
+mongoose.connect("mongodb+srv://ayushoswal2003:Kabootar22@cluster0.jofycbf.mongodb.net/?retryWrites=true&w=majority",{
+    useNewUrlParser:true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB Atlas connected'))
+.catch(err => console.log(err));
+
+const itemSchema ={
+    name:String
+}
+
+const Item = mongoose.model("item",itemSchema);
+
+const ListSchema = {
+    name:String,
+    items:[itemSchema]
+}
+
+const List = mongoose.model("List",ListSchema)
+
 
 app.set('view engine', 'ejs');
 
 app.get("/",function(req,res){
-    let day = date();
-    res.render("list",{ListTitle:day , Newitems:items})
+    
+
+    Item.find({})
+    .then(Items=> res.render("list",{ListTitle:"Today" , Newitems:Items}))
+
+    
 });
 
 app.post("/",function(req,res){
     console.log(req.body)
-    var item = req.body.newitem;
-    if(req.body.list==="Work"){
-        Workitems.push(item);
-        res.redirect("/work")
-    }
-    else{
-        items.push(item)
+    var itemName = req.body.newitem;
+    const listname = req.body.list;
+    const item = new Item({
+        name:itemName
+    });
+
+
+    if(listname==="Today"){
+        //console.log("in if")
+        item.save();
         res.redirect("/")
     }
+    else{
+        //console.log("in else")
+        List.findOne({name:listname})
+        .then((foundlist)=>{
+            foundlist.items.push(item)
+            foundlist.save();
+            res.redirect("/"+listname)
+        })
+        .catch(err=> console.log(err))
+    }
+
+    
+});
+
+app.post("/delete",function(req,res){
+    const deleteid = req.body.checkbox;
+    //console.log(deleteid)
+    const listname = req.body.listName;
+    if(listname==="Today"){
+        Item.findOneAndDelete({_id:deleteid})
+        .then(()=>console.log("successfully deleted item"))
+        .catch(err=>console.log(err))
+        res.redirect("/")
+    }
+    else{
+        console.log("in else")
+        List.findOneAndUpdate({name:listname},{$pull:{items:{_id:deleteid}}})
+        .then(()=>{
+            res.redirect("/"+listname)
+        })
+        .catch(err=>console.log(err))
+    }
+     
 });
 
 
-app.get("/work",function(req,res){
-    res.render("list",{ListTitle:"Work" , Newitems:Workitems})
+app.get("/:customName",function(req,res){
+    const newname = _.capitalize(req.params.customName)
+    List.findOne({name:newname})
+    .then((listfound)=>{
+        if(!listfound){
+            const list = new List({
+                name:newname,
+                items:[]
+            });
+            list.save()
+            res.redirect("/"+newname)
+        }
+        else{
+            var NewItems=[]
+            NewItems = listfound.items
+            res.render("list",{ListTitle:newname , Newitems:NewItems})
+        }
+    })
+    .catch(err=>console.log(err))
 });
 
 app.post("/work",function(req,res){

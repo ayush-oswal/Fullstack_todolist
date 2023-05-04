@@ -15,10 +15,13 @@
     <div class="box">
         <h2 id="heading">----Add ToDo----</h2>
         <% for(var i =0; i<Newitems.length; i++){ %>
-            <div class="item">
-                <input type="checkbox">
-                <p><%=Newitems[i]%></p>
-            </div>
+            <form action="/delete" method="post">
+                <div class="item">
+                    <input type="checkbox" name="checkbox" value="<%= Newitems[i]._id %>" onChange="this.form.submit()">
+                    <p><%=Newitems[i].name%></p>
+                </div>
+                <input type="hidden" name="listName" value="<%= ListTitle %>">
+            </form>
         <%}%>
         <form class="item" action="/" method="post">
             <input type="text" name="newitem" placeholder="New Item" autocomplete="off">

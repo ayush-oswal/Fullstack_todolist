@@ -1,7 +1,5 @@
 
-/*  
-connection string : mongodb+srv://ayushoswal2003:Kabootar22@cluster0.jofycbf.mongodb.net/?retryWrites=true&w=majority
-*/
+
 
 const express = require('express');
 
@@ -10,6 +8,8 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser')
 
 const _ = require('lodash')
+
+require('dotenv').config();
 
 const date = require(__dirname+"/date.js")
 let day = date();
@@ -25,7 +25,7 @@ app.use(express.static("public"))
 var items = [];
 
 
-mongoose.connect("mongodb+srv://ayushoswal2003:Kabootar22@cluster0.jofycbf.mongodb.net/?retryWrites=true&w=majority",{
+mongoose.connect(process.env.CONNECTION_STRING,{
     useNewUrlParser:true,
     useUnifiedTopology: true
 })
@@ -96,7 +96,7 @@ app.post("/delete",function(req,res){
         res.redirect("/")
     }
     else{
-        console.log("in else")
+        //console.log("in else")
         List.findOneAndUpdate({name:listname},{$pull:{items:{_id:deleteid}}})
         .then(()=>{
             res.redirect("/"+listname)
